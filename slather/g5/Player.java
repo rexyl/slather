@@ -21,68 +21,88 @@ public class Player implements slather.sim.Player {
         d_ = d;
     }
 
+    private Point pathOfLeastResistance(Cell player_cell, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes) {
+        class GridObjectAnglePair <GridObjectAnglePair>{
+            GridObject gridObject;
+            Point angle;
+            public GridObjectAnglePair(GridObject obj, Point ang) {
+                angle = ang;
+                gridObject = obj;
+            }
+        }
+        
+        class GridObjectAnglePairComparator implements Comparator<GridObjectAnglePair> {
+            @Override
+            public int compare(GridObjectAnglePair a, GridObjectAnglePair b) {
+                double angle1 = Math.atan2(a.angle.y, a.angle.x);
+                double angle2 = Math.atan2(b.angle.y, b.angle.x);
+                if(angle1==angle2) return 0;
+                return angle1<angle2?-1:1;
+            }   
+        }
+        
+        List<GridObjectAnglePair> nearby_list = new ArrayList<GridObjectAnglePair>(); 
+        for(GridObject cell : nearby_cells) {
+            nearby_list.add(new GridObjectAnglePair(cell, getClosestDirection(player_cell.getPosition(), cell.getPosition())));
+        }
+        for(GridObject pherome : nearby_pheromes) {
+            if(pherome.player != player_cell.player) {
+                nearby_list.add(new GridObjectAnglePair(pherome, getClosestDirection(player_cell.getPosition(), pherome.getPosition())));
+            }
+        }
+        nearby_list.sort(new GridObjectAnglePairComparator());
+        if(nearby_list.size()>1) {
+            double widest = 0;
+            int widest_index = -1;
+            double prev_angle = Math.atan2(nearby_list.get(0).angle.y, nearby_list.get(0).angle.x);
+            for(int i = 1; i < nearby_list.size(); ++i) {
+                double angle1 = Math.atan2(nearby_list.get(i).angle.y, nearby_list.get(i).angle.x);
+                double angle2 = Math.atan2(nearby_list.get(i-1).angle.y, nearby_list.get(i-1).angle.x);
+                if( widest < angle2 - angle1) {
+                    widest = angle2 - angle1;
+                    widest_index = i;
+                }
+            }
+            double angle1 = Math.atan2(nearby_list.get(0).angle.y, nearby_list.get(0).angle.x);
+            double angle2 = Math.atan2(nearby_list.get(nearby_list.size()-1).angle.y, nearby_list.get(nearby_list.size()-1).angle.x);
+            
+            if(widest < angle1 + 2*Math.PI - angle2 ) {
+                widest = angle1 + 2*Math.PI - angle2;
+                widest_index = 0;
+            }
+            Point p1 = nearby_list.get(widest_index).angle;
+            Point p2 = nearby_list.get(widest_index-1<0?nearby_list.size()-1:widest_index-1).angle;
+            Point p3 = new Point((p1.x + p2.x)/2, (p1.y + p2.y)/2);
+            //return new Move(p3, memory);
+            return p3;
+        } else if(nearby_list.size() == 1) {
+            return new Point(-nearby_list.get(0).angle.x,-nearby_list.get(0).angle.y);
+        }
+        return new Point(0,0);
+    }
+
     public Move play(Cell player_cell, byte memory, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes) {
         // reproduce whenever possible
         if (player_cell.getDiameter() >= 2) {
             return new Move(true, (byte)0, (byte)0);
         }
-        
-        class GridObjectAnglePair <GridObjectAnglePair>{
-        	GridObject gridObject;
-        	Point angle;
-        	public GridObjectAnglePair(GridObject obj, Point ang) {
-        		angle = ang;
-        		gridObject = obj;
-        	}
-        }
-        
-        class GridObjectAnglePairComparator implements Comparator<GridObjectAnglePair> {
-        	@Override
-			public int compare(GridObjectAnglePair a, GridObjectAnglePair b) {
-				double angle1 = Math.atan2(a.angle.y, a.angle.x);
-				double angle2 = Math.atan2(b.angle.y, b.angle.x);
-				if(angle1==angle2) return 0;
-				return angle1<angle2?-1:1;
-			}	
-        }
-        
-        List<GridObjectAnglePair> nearby_list = new ArrayList<GridObjectAnglePair>(); 
-        for(GridObject cell : nearby_cells) {
-        	nearby_list.add(new GridObjectAnglePair(cell, getClosestDirection(player_cell.getPosition(), cell.getPosition())));
-        }
-        for(GridObject pherome : nearby_pheromes) {
-        	if(pherome.player != player_cell.player) {
-        		nearby_list.add(new GridObjectAnglePair(pherome, getClosestDirection(player_cell.getPosition(), pherome.getPosition())));
-        	}
-        }
-        nearby_list.sort(new GridObjectAnglePairComparator());
-        if(!nearby_list.isEmpty()) {
-        	double widest = 0;
-        	int widest_index = -1;
-            double prev_angle = Math.atan2(nearby_list.get(0).angle.y, nearby_list.get(0).angle.x);
-            for(int i = 1; i < nearby_list.size(); ++i) {
-            	double angle1 = Math.atan2(nearby_list.get(i).angle.y, nearby_list.get(i).angle.x);
-            	double angle2 = Math.atan2(nearby_list.get(i-1).angle.y, nearby_list.get(i-1).angle.x);
-            	if( widest < angle2 - angle1) {
-            		widest = angle2 - angle1;
-            		widest_index = i;
-            	}
+
+        Point nextPath = pathOfLeastResistance(player_cell, nearby_cells, nearby_pheromes);
+
+        if(nextPath.x != 0 && nextPath.y != 0) {
+            if(!collides(player_cell, nextPath, nearby_cells, nearby_pheromes)) {
+                return new Move(nextPath, (byte)(int)((Math.toDegrees(Math.atan2(nextPath.y, nextPath.x))/2)));
             }
-            double angle1 = Math.atan2(nearby_list.get(0).angle.y, nearby_list.get(0).angle.x);
-        	double angle2 = Math.atan2(nearby_list.get(nearby_list.size()-1).angle.y, nearby_list.get(nearby_list.size()-1).angle.x);
-        	
-            if(widest < angle1 + 2*Math.PI - angle2 ) {
-            	widest = angle1 + 2*Math.PI - angle2;
-            	widest_index = 0;
-            }
-            Point p1 = nearby_list.get(widest_index).angle;
-            Point p2 = nearby_list.get(widest_index-1<0?nearby_list.size()-1:widest_index-1).angle;
-            Point p3 = new Point((p1.x + p2.x)/2, (p1.y + p2.y)/2);
-            return new Move(p3, memory);
+        } else {
+            // continue moving in the same direction as before
+            Point vector = extractVectorFromAngle( (int)memory);
+            // check for collisions
+            if (!collides( player_cell, vector, nearby_cells, nearby_pheromes))
+            return new Move(vector, memory);
         }
         
         // Offensive strategy
-        if(memory > 0) {
+        /*if(memory > 0) {
             int cellX = 0;
             int cellY = 0;
 
@@ -148,15 +168,7 @@ public class Player implements slather.sim.Player {
                     return new Move(newDir, (byte)((Math.atan2(cellY, cellX))/2));
                 }
             }
-        }
-
-        // TODO: this is probably stale code
-        if (memory > 0) { // follow previous direction unless it would cause a collision
-            Point vector = extractVectorFromAngle( (int)memory);
-            // check for collisions
-            if (!collides( player_cell, vector, nearby_cells, nearby_pheromes))
-            return new Move(vector, memory);
-        }
+        }*/
 
         // Generate a random new direction to travel
         for (int i=0; i<4; i++) {
