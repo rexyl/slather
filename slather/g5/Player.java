@@ -58,8 +58,8 @@ public class Player implements slather.sim.Player {
             for(int i = 1; i < nearby_list.size(); ++i) {
                 double angle1 = Math.atan2(nearby_list.get(i).angle.y, nearby_list.get(i).angle.x);
                 double angle2 = Math.atan2(nearby_list.get(i-1).angle.y, nearby_list.get(i-1).angle.x);
-                if( widest < angle2 - angle1) {
-                    widest = angle2 - angle1;
+                if( widest < angle1 - angle2 ) {
+                    widest = angle1 - angle2;
                     widest_index = i;
                 }
             }
@@ -72,15 +72,27 @@ public class Player implements slather.sim.Player {
             }
             Point p1 = nearby_list.get(widest_index).angle;
             Point p2 = nearby_list.get(widest_index-1<0?nearby_list.size()-1:widest_index-1).angle;
-            Point p3 = new Point((p1.x + p2.x)/2, (p1.y + p2.y)/2);
+            
+            p2 = rotate_counter_clockwise(p2, widest/2);
+            
+            
             //return new Move(p3, memory);
-            return p3;
+            return p2;
         } else if(nearby_list.size() == 1) {
             return new Point(-nearby_list.get(0).angle.x,-nearby_list.get(0).angle.y);
         }
         return new Point(0,0);
     }
 
+    Point rotate_counter_clockwise(Point vector, double angle) {
+		double newx, newy,x,y;
+		x = vector.x;
+		y = vector.y;
+		newx = x*Math.cos(angle) - y*Math.sin(angle);
+		newy = y*Math.cos(angle) + x*Math.sin(angle);
+		return new Point(newx, newy);
+	}
+    
     public Move play(Cell player_cell, byte memory, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes) {
         // reproduce whenever possible
         if (player_cell.getDiameter() >= 2) {
