@@ -4,6 +4,7 @@ import slather.sim.Cell;
 import slather.sim.Point;
 import slather.sim.Move;
 import slather.sim.Pherome;
+import slather.sim.GridObject;
 import java.util.*;
 
 
@@ -25,9 +26,61 @@ public class Player implements slather.sim.Player {
         if (player_cell.getDiameter() >= 2) {
             return new Move(true, (byte)0, (byte)0);
         }
-
-
-
+        
+        class GridObjectAnglePair <GridObjectAnglePair>{
+        	GridObject gridObject;
+        	Point angle;
+        	public GridObjectAnglePair(GridObject obj, Point ang) {
+        		angle = ang;
+        		gridObject = obj;
+        	}
+        }
+        
+        class GridObjectAnglePairComparator implements Comparator<GridObjectAnglePair> {
+        	@Override
+			public int compare(GridObjectAnglePair a, GridObjectAnglePair b) {
+				double angle1 = Math.atan2(a.angle.y, a.angle.x);
+				double angle2 = Math.atan2(b.angle.y, b.angle.x);
+				if(angle1==angle2) return 0;
+				return angle1<angle2?-1:1;
+			}	
+        }
+        
+        List<GridObjectAnglePair> nearby_list = new ArrayList<GridObjectAnglePair>(); 
+        for(GridObject cell : nearby_cells) {
+        	nearby_list.add(new GridObjectAnglePair(cell, getClosestDirection(player_cell.getPosition(), cell.getPosition())));
+        }
+        for(GridObject pherome : nearby_pheromes) {
+        	if(pherome.player != player_cell.player) {
+        		nearby_list.add(new GridObjectAnglePair(pherome, getClosestDirection(player_cell.getPosition(), pherome.getPosition())));
+        	}
+        }
+        nearby_list.sort(new GridObjectAnglePairComparator());
+        if(!nearby_list.isEmpty()) {
+        	double widest = 0;
+        	int widest_index = -1;
+            double prev_angle = Math.atan2(nearby_list.get(0).angle.y, nearby_list.get(0).angle.x);
+            for(int i = 1; i < nearby_list.size(); ++i) {
+            	double angle1 = Math.atan2(nearby_list.get(i).angle.y, nearby_list.get(i).angle.x);
+            	double angle2 = Math.atan2(nearby_list.get(i-1).angle.y, nearby_list.get(i-1).angle.x);
+            	if( widest < angle2 - angle1) {
+            		widest = angle2 - angle1;
+            		widest_index = i;
+            	}
+            }
+            double angle1 = Math.atan2(nearby_list.get(0).angle.y, nearby_list.get(0).angle.x);
+        	double angle2 = Math.atan2(nearby_list.get(nearby_list.size()-1).angle.y, nearby_list.get(nearby_list.size()-1).angle.x);
+        	
+            if(widest < angle1 + 2*Math.PI - angle2 ) {
+            	widest = angle1 + 2*Math.PI - angle2;
+            	widest_index = 0;
+            }
+            Point p1 = nearby_list.get(widest_index).angle;
+            Point p2 = nearby_list.get(widest_index-1<0?nearby_list.size()-1:widest_index-1).angle;
+            Point p3 = new Point((p1.x + p2.x)/2, (p1.y + p2.y)/2);
+            return new Move(p3, memory);
+        }
+        
         // Offensive strategy
         if(memory > 0) {
             int cellX = 0;
@@ -180,5 +233,58 @@ public class Player implements slather.sim.Player {
     double dy = Cell.move_dist * Math.sin(theta);
     return new Point(dx, dy);
     }
+    private double getDistanceDirect(Point first, Point second) {
+		double dist_square = (first.x - second.x)*(first.x - second.x) + (first.y - second.y)*(first.y - second.y);
+    	double dist = Math.sqrt(dist_square);
+    	return dist;
+	}
 
+    private double getDistance(Point first, Point second) {
+    	double x = second.x;
+    	double y = second.y;
+    	double dist = 100;
+    	for(int area_x = -1; area_x <= 1; area_x ++) {
+    		for(int area_y = -1; area_y <= 1; area_y ++) {
+    			x = second.x + area_x*100;
+    			y = second.y + area_y*100;
+    			double d = getDistanceDirect(first, new Point(x,y));
+    			if( dist > d) {
+    				dist = d;
+    			}
+    		}
+    	}
+    	//System.out.println("distance to " + second.x + " " + second.y +"= " + dist);
+    	return dist;
+    }
+    //of first to second
+    private Point getClosestDirection(Point first, Point second) {
+    	System.out.println(first.x +" " + first.y +" " + second.x +" "+ second.y);
+    	double x = second.x;
+    	double y = second.y;
+    	double dist = 100;
+    	Point best = null;
+    	for(int area_x = -1; area_x <= 1; area_x ++) {
+    		for(int area_y = -1; area_y <= 1; area_y ++) {
+    			x = second.x + area_x*100;
+    			y = second.y + area_y*100;
+    			double d = getDistanceDirect(first, new Point(x ,y ));
+    			if( dist > d) {
+    				dist = d;
+    				best = new Point(x-first.x,y-first.y);
+    			}
+    		}
+    	}
+		if(best == null) System.out.println("best null");
+    	return getUnitVector(best);
+    }
+    
+    private Point getUnitVector(Point point) {
+    	double x = point.x, y = point.y;
+    	double norm = Math.hypot(x, y);
+    	x /= norm;
+    	y /= norm;
+		
+    	return new Point(x, y);
+    }
+    
 }
