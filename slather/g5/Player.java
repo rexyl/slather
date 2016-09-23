@@ -14,7 +14,7 @@ public class Player implements slather.sim.Player {
     int t_;
     double d_;
 
-    public void init(double d, int t) {
+    public void init(double d, int t, int side_length) {
         gen = new Random();
         t_ = t;
         d_ = d;
@@ -26,6 +26,8 @@ public class Player implements slather.sim.Player {
             return new Move(true, (byte)0, (byte)0);
         }
 
+
+
         // Offensive strategy
         if(memory > 0) {
             int cellX = 0;
@@ -34,16 +36,41 @@ public class Player implements slather.sim.Player {
             // Look at nearby cells and go toward opposing players 
             // and away from friendly cells
             for (Cell c : nearby_cells) {
+
+                int counter = 0;
+                int friendly_counter = 0;
+                final int THRESHOLD = 15;
                 if(c.player != player_cell.player) {
+                    counter++;
+
                     // TODO: If we're being encroached, perhaps the strategy should
                     //       be shifted so we move away from all cells until we're less encroached.
-                    cellX += c.getPosition().x - player_cell.getPosition().x;
-                    cellY += c.getPosition().y - player_cell.getPosition().y;
+                    if(player_cell.getDiameter() >= 1.9) {
+                        cellX -= c.getPosition().x - player_cell.getPosition().x;
+                        cellY -= c.getPosition().y - player_cell.getPosition().y;
+                    } else if (counter > THRESHOLD) {
+                        cellX += c.getPosition().x - player_cell.getPosition().x;
+                        cellY += c.getPosition().y - player_cell.getPosition().y;
+                    } else {
+                        cellX -= c.getPosition().x - player_cell.getPosition().x;
+                        cellY -= c.getPosition().y - player_cell.getPosition().y;
+                    }
                     // TODO: Weight the contribution by distance to cell
                     //       This could help, probably for large d? maybe not?
+                    // TODO: Perhaps look at pheromes too and move away from friendly 
+                    // ones so as to explore unexplored territory 
+
+
                 } else {
+                    friendly_counter++;
+
+                    //if(friendly_counter < 5) {
+                    //    cellX += c.getPosition().x - player_cell.getPosition().x;
+                    //    cellY += c.getPosition().y - player_cell.getPosition().y;                        
+                    //} else {
                     cellX -= c.getPosition().x - player_cell.getPosition().x;
                     cellY -= c.getPosition().y - player_cell.getPosition().y;
+                    //}
                 }
             }
 
