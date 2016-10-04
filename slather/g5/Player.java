@@ -84,6 +84,9 @@ public class Player implements slather.sim.Player {
         return new Point(0,0);
     }
 
+    /*
+     * Angle in Radian
+     */
     Point rotate_counter_clockwise(Point vector, double angle) {
 		double newx, newy,x,y;
 		x = vector.x;
@@ -193,7 +196,36 @@ public class Player implements slather.sim.Player {
         // if all tries fail, just chill in place
         return new Move(new Point(0,0), (byte)0);
     }
-
+    
+    private Set<Point> getTangentsCellToPoint( Cell c, Point p) {
+    	Set<Point> out = new HashSet<Point>();
+    	double radius = c.getDiameter()/2;
+    	double hypotenuse = getDistance(p, c.getPosition());
+    	double theta = Math.asin(radius/hypotenuse);
+    	Point center_to_center = new Point(p.x-c.getPosition().x, p.y-c.getPosition().y);
+    	out.add(rotate_counter_clockwise(center_to_center, theta));
+    	out.add(rotate_counter_clockwise(center_to_center, -theta));
+    	return out;
+    }
+    
+    private Set<Point> getTangentsCellToCell(Cell player_cell, Cell other) {
+    	Set<Point> out = new HashSet<Point>();
+    	double r1 = player_cell.getDiameter()/2;
+    	double r2 = other.getDiameter()/2;
+    	double d = getDistance(player_cell.getPosition(), other.getPosition());
+    	double theta1 = Math.asin((r1-r2)/d);
+    	double theta2 = Math.asin((r1+r2)/d);
+    	Point center_to_center = new Point(other.getPosition().x-player_cell.getPosition().x,
+    			other.getPosition().y-player_cell.getPosition().y);
+    	out.add(rotate_counter_clockwise(center_to_center, theta1));
+    	out.add(rotate_counter_clockwise(center_to_center, -theta1));
+    	out.add(rotate_counter_clockwise(center_to_center, theta2));
+    	out.add(rotate_counter_clockwise(center_to_center, -theta2));
+    	
+    	
+    	return out;
+    }
+    
     // Broken nextDirection function for circle strategy
     private Point nextDirection(Cell player_cell, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes) {
 
