@@ -9,8 +9,10 @@ import java.util.*;
 
 
 public class Player implements slather.sim.Player {
-    
-    private Random gen;
+    //arbitrary right now
+    private static final double THRESHOLD_DISTANCE = 3;
+
+	private Random gen;
 
     int t_;
     double d_;
@@ -57,10 +59,12 @@ public class Player implements slather.sim.Player {
         
         List<GridObjectAnglePair> nearby_list = new ArrayList<GridObjectAnglePair>(); 
         for(GridObject cell : nearby_cells) {
+        	if(getDistance(cell.getPosition(), player_cell.getPosition()) < THRESHOLD_DISTANCE)
             nearby_list.add(new GridObjectAnglePair(cell, getClosestDirection(player_cell.getPosition(), cell.getPosition())));
         }
         for(GridObject pherome : nearby_pheromes) {
-            if(pherome.player != player_cell.player) {
+            if(pherome.player != player_cell.player 
+            		&& (getDistance(pherome.getPosition(), player_cell.getPosition()) < THRESHOLD_DISTANCE)) {
                 nearby_list.add(new GridObjectAnglePair(pherome, getClosestDirection(player_cell.getPosition(), pherome.getPosition())));
             }
         }
