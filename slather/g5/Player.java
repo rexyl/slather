@@ -111,7 +111,25 @@ public class Player implements slather.sim.Player {
     	if(angle < 0) angle += 2*Math.PI;
     	return angle;
     }
-    private Point pathBetweenTangents(Cell player_cell, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes) {
+    private Point getLargestTraversableDistance(
+    		Point direction,
+    		Cell player_cell,
+    		Set<Cell> nearby_cells,
+    		Set<Pherome> nearby_pheromes) {
+    	direction = getUnitVector(direction);
+    	double small = 0;
+    	double large = 1;
+    	while(large - small > 0.001) {
+    		double mid = (small + large) / 2;
+    		Point vector = new Point(direction.x * mid, direction.y * mid);
+    		boolean can_move = !collides(player_cell, vector, nearby_cells, nearby_pheromes);
+    		if(can_move) small = mid;
+    		else large = mid;
+    	}
+    	return new Point(direction.x * small, direction.y * small);
+    }
+    private Point pathBetweenTangents(
+    		Cell player_cell, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes, boolean is_late_game) {
 
     	class GridObjectAnglePair{
             GridObject gridObject;
@@ -188,7 +206,10 @@ public class Player implements slather.sim.Player {
                 	}
                 //no overlap
                 } else {
-                	if(widest < angle) {
+                	boolean both_friends = nearby_list.get(k).gridObject.player == player_cell.player 
+                			&& nearby_list.get(prev_i).gridObject.player == player_cell.player;
+                	if(widest < angle 
+                			&& (!is_late_game || !both_friends)) {
                 		widest = angle;
                 		widest_vector = prev_tangent;
                 	}
@@ -213,6 +234,8 @@ public class Player implements slather.sim.Player {
         }
         return new Point(0,0);
     }
+    
+    
     /*
      * Angle in Radian
      */
@@ -245,26 +268,29 @@ public class Player implements slather.sim.Player {
             } 
         }
 
-        if (enemy_pheromes + nearby_cells_restricted.size() > 18 ) {
-            System.out.println(enemy_pheromes + nearby_cells_restricted.size());
-            System.out.println("Late game strategy");
-
-            Move m = aggresivePlayer.play(player_cell, memory, nearby_cells, nearby_pheromes);
-            if (m!=null) {
-                return m;
-            }
-        }
+        
 
         // reproduce whenever possible
         if (player_cell.getDiameter() >= 2) {
             return new Move(true, (byte)0, (byte)0);
         }
 
-        Point nextPath = pathBetweenTangents(player_cell, nearby_cells_restricted, nearby_pheromes_restricted);
+        Point nextPath = pathBetweenTangents(player_cell, nearby_cells_restricted, nearby_pheromes_restricted,
+        		enemy_pheromes + nearby_cells_restricted.size() > 18);
 
         if(nextPath.x != 0 && nextPath.y != 0) {
             if(!collides(player_cell, nextPath, nearby_cells_restricted, nearby_pheromes_restricted)) {
                 return new Move(nextPath, (byte)(int)((Math.toDegrees(Math.atan2(nextPath.y, nextPath.x))/2)));
+            } else {
+            	Point vector = getLargestTraversableDistance(
+    					nextPath, player_cell, nearby_cells_restricted, nearby_pheromes_restricted);
+            	//System.out.println("newlate2 norm: " + vector.norm());
+            	if(vector.norm() < 0.75 && vector.norm() > 0.25 
+            			&& !collides(player_cell, vector, nearby_cells_restricted, nearby_pheromes_restricted)) {
+            		//System.out.println("newlate2 Well done, strategy.");
+            		return new Move(
+            			vector, (byte)(int)((Math.toDegrees(Math.atan2(nextPath.y, nextPath.x))/2)));
+            	}
             }
         } else {
             // continue moving in the same direction as before
