@@ -254,9 +254,12 @@ public class Player implements slather.sim.Player {
         d_restrict = Math.min(d_restrict,d_);
         Set<Cell> nearby_cells_restricted = new HashSet<Cell>();
         Set<Pherome> nearby_pheromes_restricted = new HashSet<Pherome>();
+        int enemy_cells = 0;
         for (Cell near_cell :nearby_cells ) {
             if (player_cell.distance(near_cell) <= d_restrict ) {
                 nearby_cells_restricted.add(near_cell);
+                if (near_cell.player != player_cell.player)
+                    enemy_cells++;
             }
         }
         int enemy_pheromes = 0;
@@ -275,8 +278,11 @@ public class Player implements slather.sim.Player {
             return new Move(true, (byte)0, (byte)0);
         }
 
+        // if (enemy_pheromes + enemy_cells > 14)
+        //     System.out.println(enemy_pheromes + enemy_cells);
+
         Point nextPath = pathBetweenTangents(player_cell, nearby_cells_restricted, nearby_pheromes_restricted,
-        		enemy_pheromes + nearby_cells_restricted.size() > 18);
+        		enemy_pheromes + enemy_cells > 14);
 
         if(nextPath.x != 0 && nextPath.y != 0) {
             if(!collides(player_cell, nextPath, nearby_cells_restricted, nearby_pheromes_restricted)) {
