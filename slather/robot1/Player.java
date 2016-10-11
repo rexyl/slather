@@ -32,7 +32,7 @@ public class Player implements slather.sim.Player {
     	//System.out.println("id: " + player_cell.id + " memory: " + memory);
         // reproduce whenever possible
         if (player_cell.getDiameter() >= 2) {
-        	System.out.println("reproduced");
+//        	System.out.println("reproduced");
             return new Move(true, (byte)memory, (byte)memory);
         }
         
@@ -43,7 +43,7 @@ public class Player implements slather.sim.Player {
         	}
         }
         if(just_collided) {
-        	System.out.println("collide");
+//        	System.out.println("collide");
         	special_i = memory&3;
         	special = specials[special_i];
         	Cell sibling = null;
@@ -135,7 +135,7 @@ public class Player implements slather.sim.Player {
         				memory);
         	}
     	} else {
-    		System.out.println("memory: " + memory);
+//    		System.out.println("memory: " + memory);
     		return null;
     	}
     }

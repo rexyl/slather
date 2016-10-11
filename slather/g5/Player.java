@@ -13,11 +13,12 @@ public class Player implements slather.sim.Player {
     private static final double THRESHOLD_DISTANCE = 3;
 
 	private Random gen;
-
+    public AggresivePlayer aggresivePlayer;
     int t_;
     double d_;
 
     public void init(double d, int t, int side_length) {
+        aggresivePlayer = new AggresivePlayer();
         gen = new Random();
         t_ = t;
         d_ = d;
@@ -225,22 +226,51 @@ public class Player implements slather.sim.Player {
 	}
     
     public Move play(Cell player_cell, byte memory, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes) {
+        //restrict to d_restrict mm sight
+        double d_restrict = 2.0;
+        d_restrict = Math.min(d_restrict,d_);
+        Set<Cell> nearby_cells_restricted = new HashSet<Cell>();
+        Set<Pherome> nearby_pheromes_restricted = new HashSet<Pherome>();
+        for (Cell near_cell :nearby_cells ) {
+            if (player_cell.distance(near_cell) <= d_restrict ) {
+                nearby_cells_restricted.add(near_cell);
+            }
+        }
+        int enemy_pheromes = 0;
+        for (Pherome near_pherome :nearby_pheromes ) {
+            if (player_cell.distance(near_pherome) <= d_restrict ) {
+                nearby_pheromes_restricted.add(near_pherome);
+                if (near_pherome.player != player_cell.player)
+                    enemy_pheromes++;
+            } 
+        }
+
+        if (enemy_pheromes + nearby_cells_restricted.size() > 18 ) {
+            System.out.println(enemy_pheromes + nearby_cells_restricted.size());
+            System.out.println("Late game strategy");
+
+            Move m = aggresivePlayer.play(player_cell, memory, nearby_cells, nearby_pheromes);
+            if (m!=null) {
+                return m;
+            }
+        }
+
         // reproduce whenever possible
         if (player_cell.getDiameter() >= 2) {
             return new Move(true, (byte)0, (byte)0);
         }
 
-        Point nextPath = pathBetweenTangents(player_cell, nearby_cells, nearby_pheromes);
+        Point nextPath = pathBetweenTangents(player_cell, nearby_cells_restricted, nearby_pheromes_restricted);
 
         if(nextPath.x != 0 && nextPath.y != 0) {
-            if(!collides(player_cell, nextPath, nearby_cells, nearby_pheromes)) {
+            if(!collides(player_cell, nextPath, nearby_cells_restricted, nearby_pheromes_restricted)) {
                 return new Move(nextPath, (byte)(int)((Math.toDegrees(Math.atan2(nextPath.y, nextPath.x))/2)));
             }
         } else {
             // continue moving in the same direction as before
             Point vector = extractVectorFromAngle( (int)memory);
             // check for collisions
-            if (!collides( player_cell, vector, nearby_cells, nearby_pheromes))
+            if (!collides( player_cell, vector, nearby_cells_restricted, nearby_pheromes_restricted))
             return new Move(vector, memory);
         }
         
@@ -251,7 +281,7 @@ public class Player implements slather.sim.Player {
 
             // Look at nearby cells and go toward opposing players 
             // and away from friendly cells
-            for (Cell c : nearby_cells) {
+            for (Cell c : nearby_cells_restricted) {
 
                 int counter = 0;
                 int friendly_counter = 0;
@@ -299,7 +329,7 @@ public class Player implements slather.sim.Player {
                 // continue moving in the same direction as before
                 Point vector = extractVectorFromAngle( (int)memory);
                 // check for collisions
-                if (!collides( player_cell, vector, nearby_cells, nearby_pheromes))
+                if (!collides( player_cell, vector, nearby_cells_restricted, nearby_pheromes_restricted))
                 return new Move(vector, memory);
             } else {
                 // otherwise move toward enemies and away from friendlies
@@ -307,7 +337,7 @@ public class Player implements slather.sim.Player {
                 Point newDir = new Point(cellX / Math.hypot(cellX, cellY), 
                                           cellY / Math.hypot(cellX, cellY));
 
-                if(!collides(player_cell, newDir, nearby_cells, nearby_pheromes)) {
+                if(!collides(player_cell, newDir, nearby_cells_restricted, nearby_pheromes_restricted)) {
                     return new Move(newDir, (byte)((Math.atan2(cellY, cellX))/2));
                 }
             }
@@ -317,7 +347,7 @@ public class Player implements slather.sim.Player {
         for (int i=0; i<4; i++) {
             int arg = gen.nextInt(180)+1;
             Point vector = extractVectorFromAngle(arg);
-            if (!collides(player_cell, vector, nearby_cells, nearby_pheromes)) 
+            if (!collides(player_cell, vector, nearby_cells_restricted, nearby_pheromes_restricted)) 
             return new Move(vector, (byte) arg);
         }
 
