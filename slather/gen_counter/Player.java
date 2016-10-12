@@ -310,27 +310,6 @@ public class Player implements slather.sim.Player {
 
                 if(c.player != player_cell.player) {
                     counter++;
-
-                    // TODO: If we're being encroached, perhaps the strategy should
-                    //       be shifted so we move away from all cells until we're less encroached.
-
-                    
-                    /*if(player_cell.getDiameter() >= 1.9) {
-                        cellX -= (c.getPosition().x - player_cell.getPosition().x)*distance;
-                        cellY -= (c.getPosition().y - player_cell.getPosition().y)*distance;
-                    } else if (counter > THRESHOLD) {
-                        cellX += (c.getPosition().x - player_cell.getPosition().x)*distance;
-                        cellY += (c.getPosition().y - player_cell.getPosition().y)*distance;
-                    } else {
-                        cellX -= (c.getPosition().x - player_cell.getPosition().x)*distance;
-                        cellY -= (c.getPosition().y - player_cell.getPosition().y)*distance;
-                    }*/
-                    // TODO: Weight the contribution by distance to cell
-                    //       This could help, probably for large d? maybe not?
-                    // TODO: Perhaps look at pheromes too and move away from friendly 
-                    // ones so as to explore unexplored territory 
-
-
                 } else if(c.getDiameter() <= MAX_PACKING_DIAMETER) {
                     friendly_counter++;
                     if(distance < min_distance) {
@@ -338,13 +317,8 @@ public class Player implements slather.sim.Player {
                         min_distance = distance;
                     }
 
-                    //if(friendly_counter < 5) {
-                    //    cellX += c.getPosition().x - player_cell.getPosition().x;
-                    //    cellY += c.getPosition().y - player_cell.getPosition().y;                        
-                    //} else {
                     cellX -= (c.getPosition().x - player_cell.getPosition().x);
                     cellY -= (c.getPosition().y - player_cell.getPosition().y);
-                    //}
                 }
             }
 
@@ -407,75 +381,6 @@ public class Player implements slather.sim.Player {
             if (!collides( player_cell, vector, nearby_cells_restricted, nearby_pheromes_restricted))
             return new Move(vector, curByte.getRawByte());
         }
-        
-        // Offensive strategy
-        /*if(memory > 0) {
-            int cellX = 0;
-            int cellY = 0;
-
-            // Look at nearby cells and go toward opposing players 
-            // and away from friendly cells
-            for (Cell c : nearby_cells_restricted) {
-
-                int counter = 0;
-                int friendly_counter = 0;
-                final int THRESHOLD = 6;
-
-                double distance = player_cell.distance(c);
-
-                if(c.player != player_cell.player) {
-                    counter++;
-
-                    // TODO: If we're being encroached, perhaps the strategy should
-                    //       be shifted so we move away from all cells until we're less encroached.
-
-                    
-                    if(player_cell.getDiameter() >= 1.9) {
-                        cellX -= (c.getPosition().x - player_cell.getPosition().x)*distance;
-                        cellY -= (c.getPosition().y - player_cell.getPosition().y)*distance;
-                    } else if (counter > THRESHOLD) {
-                        cellX += (c.getPosition().x - player_cell.getPosition().x)*distance;
-                        cellY += (c.getPosition().y - player_cell.getPosition().y)*distance;
-                    } else {
-                        cellX -= (c.getPosition().x - player_cell.getPosition().x)*distance;
-                        cellY -= (c.getPosition().y - player_cell.getPosition().y)*distance;
-                    }
-                    // TODO: Weight the contribution by distance to cell
-                    //       This could help, probably for large d? maybe not?
-                    // TODO: Perhaps look at pheromes too and move away from friendly 
-                    // ones so as to explore unexplored territory 
-
-
-                } else {
-                    friendly_counter++;
-
-                    //if(friendly_counter < 5) {
-                    //    cellX += c.getPosition().x - player_cell.getPosition().x;
-                    //    cellY += c.getPosition().y - player_cell.getPosition().y;                        
-                    //} else {
-                    cellX -= (c.getPosition().x - player_cell.getPosition().x)*distance;
-                    cellY -= (c.getPosition().y - player_cell.getPosition().y)*distance;
-                    //}
-                }
-            }
-
-            if(Math.hypot(cellX, cellY) == 0) { // If there are no nearby cells or the desired destination is to stay put
-                // continue moving in the same direction as before
-                Point vector = extractVectorFromAngle( (int)memory);
-                // check for collisions
-                if (!collides( player_cell, vector, nearby_cells_restricted, nearby_pheromes_restricted))
-                return new Move(vector, memory);
-            } else {
-                // otherwise move toward enemies and away from friendlies
-
-                Point newDir = new Point(cellX / Math.hypot(cellX, cellY), 
-                                          cellY / Math.hypot(cellX, cellY));
-
-                if(!collides(player_cell, newDir, nearby_cells_restricted, nearby_pheromes_restricted)) {
-                    return new Move(newDir, (byte)((Math.atan2(cellY, cellX))/2));
-                }
-            }
-        }*/
 
         // Generate a random new direction to travel
         for (int i=0; i<4; i++) {
