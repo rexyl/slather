@@ -286,14 +286,20 @@ public class Player implements slather.sim.Player {
 
         }
 
+        // HEURISTICS TO VARY TO TEST
+        int RANDOM_RANGE = 10;
+        int GEN_TO_START_STRAT = 8;
+        double MAX_PACKING_DIAMETER = 1.2;
+
         // Packer strategy if we're in an old enough generation.
         Random random = new Random();
-        if((cur_gen == 15 && player_cell.getDiameter() <= 1.2) || (cur_gen > 7 && random.nextInt(10) == 0 && player_cell.getDiameter() <= 1.2)) {
+        if((cur_gen == 15 && player_cell.getDiameter() <= MAX_PACKING_DIAMETER) || (cur_gen > GEN_TO_START_STRAT && random.nextInt(RANDOM_RANGE) == 0 && player_cell.getDiameter() <= MAX_PACKING_DIAMETER)) {
             curByte = curByte.packerByte();
-            int cellX = 0;
-            int cellY = 0;
+            double cellX = 0;
+            double cellY = 0;
 
             // Look at nearby cells and go toward friendly cells
+            Cell closest_cell = null;
             double min_distance = 1000.0;
             for (Cell c : nearby_cells) {
 
@@ -301,7 +307,6 @@ public class Player implements slather.sim.Player {
                 int friendly_counter = 0;
 
                 double distance = player_cell.distance(c);
-                Cell closest_cell = null;
 
                 if(c.player != player_cell.player) {
                     counter++;
@@ -326,7 +331,7 @@ public class Player implements slather.sim.Player {
                     // ones so as to explore unexplored territory 
 
 
-                } else if(c.getDiameter() <= 1.2) {
+                } else if(c.getDiameter() <= MAX_PACKING_DIAMETER) {
                     friendly_counter++;
                     if(distance < min_distance) {
                         closest_cell = c;
@@ -347,6 +352,11 @@ public class Player implements slather.sim.Player {
                 return new Move(new Point(1, 0), curByte.getRawByte());
             }
 
+            if(closest_cell != null) {
+                cellX = -(closest_cell.getPosition().x - player_cell.getPosition().x);
+                cellY = -(closest_cell.getPosition().y - player_cell.getPosition().y);
+            }
+
             if(Math.hypot(cellX, cellY) == 0) { // If there are no nearby cells or the desired destination is to stay put
                 // continue moving in the same direction as before
                 Point vector = extractVectorFromAngle(curByte.getDirection());
@@ -360,9 +370,7 @@ public class Player implements slather.sim.Player {
                                           cellY / Math.hypot(cellX, cellY));
 
                 byte newStoredDirection = (byte)((Math.atan2(cellY, cellX))/22);
-                //if(!collides(player_cell, newDir, nearby_cells_restricted, nearby_pheromes_restricted)) {
-                    return new Move(newDir, curByte.withNewDirection(newStoredDirection));
-                //}
+                return new Move(newDir, curByte.withNewDirection(newStoredDirection));
             }
         }
 
