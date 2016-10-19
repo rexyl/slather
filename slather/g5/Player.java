@@ -10,7 +10,7 @@ import java.util.*;
 
 public class Player implements slather.sim.Player {
     //arbitrary right now
-    private static final double THRESHOLD_DISTANCE = 3;
+    private static final double THRESHOLD_DISTANCE = 2;
     private static final int MIDGAME_CELL_THRESHOLD = 4;
 	private static final int LATEGAME_CELL_THRESHOLD = 8;
 	private Random gen;
@@ -332,7 +332,7 @@ public class Player implements slather.sim.Player {
         //restrict to d_restrict mm sight
     	//System.out.println(nearby_cells.size());
     	
-        double d_restrict = 2.0;
+        double d_restrict = THRESHOLD_DISTANCE;
         d_restrict = Math.min(d_restrict,d_);
         @SuppressWarnings("unchecked")
 		Set<Cell> nearby_cells_restricted = 
@@ -371,7 +371,7 @@ public class Player implements slather.sim.Player {
         			nearby_cells_restricted, nearby_pheromes, nearby_pheromes_restricted);
         } else if(isAttacker(memory)) {
         	return moveAttacker(player_cell, memory, nearby_cells,
-        			nearby_cells_restricted, nearby_pheromes, nearby_pheromes_restricted);
+        			nearby_cells_restricted, nearby_pheromes, nearby_pheromes_restricted	);
         }
         
 	        
