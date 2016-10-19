@@ -7,9 +7,13 @@ import slather.sim.Pherome;
 import slather.sim.GridObject;
 import java.util.*;
 
-
+//Overall strategy: Start at state 1, which is finding the largest angle
+// If there are 3 or more friendly cells nearby, go to state 2
+//at state 2, move away from friendly cells until there are expansion_ratio more enemy cells than friendly
+//switch to late game at 8 cells near you. At this point the mid game function is called. If it fails, (which it 
+//probably will) just move away from the nearest cell.
 public class Player implements slather.sim.Player {
-    //arbitrary right now
+    
     private static final double THRESHOLD_DISTANCE = 2;
     
     private static final int MIDGAME_CELL_THRESHOLD = 3;//friendly nearby cells to go from early to mid game
