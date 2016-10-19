@@ -11,12 +11,25 @@ import java.util.*;
 public class Player implements slather.sim.Player {
     //arbitrary right now
     private static final double THRESHOLD_DISTANCE = 3;
-
+    private static final int MIDGAME_CELL_THRESHOLD = 4;
+	private static final int LATEGAME_CELL_THRESHOLD = 8;
 	private Random gen;
     public AggresivePlayer aggresivePlayer;
     int t_;
     double d_;
-
+    /*
+     * Memory has the following values:
+     * angle: 5 bits, role 3 bits
+     * role:
+     * 000 early game (explore with angle)
+     * 001 mid game (angle for border, move away from own cells for inner)
+     * 010 late game
+     * 		 late game inner (small cells move close together, give large cells space)
+     * 		 late game border (move away from our own cells?)
+     * 011 attacker (move toward enemies)
+     */
+    
+    
     public void init(double d, int t, int side_length) {
         aggresivePlayer = new AggresivePlayer();
         gen = new Random();
@@ -249,53 +262,137 @@ public class Player implements slather.sim.Player {
 		return new Point(newx, newy);
 	}
     
+    private Set<GridObject> getRestrictedGridObjects(Cell player_cell, 
+    						Set<GridObject> nearby_objects, double d_restrict) {
+    	Set<GridObject> nearby_objects_restricted = new HashSet<GridObject>();
+    	for (GridObject near_cell :nearby_objects ) {
+            if (player_cell.distance(near_cell) <= d_restrict ) {
+            	nearby_objects_restricted.add(near_cell);
+                
+            }
+        }
+    	return nearby_objects_restricted;
+    }
+    
+    /*
+     * Decides roles.
+     */
+    byte updateMemory(Cell player_cell, byte memory, Set<Cell> nearby_cells, Set<Cell> nearby_cells_restricted,
+			Set<Pherome> nearby_pheromes, Set<Pherome> nearby_pheromes_restricted) {
+    	if(isEarlyGame(memory) && nearby_cells_restricted.size() >= MIDGAME_CELL_THRESHOLD) {
+    		setMidGame(memory);
+    	} else if(isMidGame(memory) && nearby_cells_restricted.size() >= LATEGAME_CELL_THRESHOLD ) {
+    		setLateGame(memory);
+    	}
+    	return memory;
+    }
+    
+    byte setEarlyGame(byte memory) {
+    	byte new_memory = memory;
+    	new_memory >>= 3;
+    	new_memory <<= 3;
+    	return new_memory;
+    }
+    boolean isEarlyGame(byte memory) {
+    	return (memory&(7))==0;
+    }
+    byte setMidGame(byte memory) {
+    	byte new_memory = memory;
+    	new_memory >>= 3;
+    	new_memory <<= 3;
+    	new_memory |= 1;
+    	return new_memory;
+    }
+    boolean isMidGame(byte memory) {
+    	return (memory&(7))==1;
+    }
+    byte setLateGame(byte memory) {
+    	byte new_memory = memory;
+    	new_memory >>= 3;
+    	new_memory <<= 3;
+    	new_memory |= 2;
+    	return new_memory;
+    }
+    boolean isLateGame(byte memory) {
+    	return (memory&(7))==2;
+    }
+    byte setAttacker(byte memory) {
+    	byte new_memory = memory;
+    	new_memory >>= 3;
+    	new_memory <<= 3;
+    	new_memory |= 3;
+    	return new_memory;
+    }
+    boolean isAttacker(byte memory) {
+    	return (memory&(7))==3;
+    }
+    
+    
     public Move play(Cell player_cell, byte memory, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes) {
         //restrict to d_restrict mm sight
     	//System.out.println(nearby_cells.size());
     	
         double d_restrict = 2.0;
         d_restrict = Math.min(d_restrict,d_);
-        Set<Cell> nearby_cells_restricted = new HashSet<Cell>();
-        Set<Pherome> nearby_pheromes_restricted = new HashSet<Pherome>();
-        int enemy_cells = 0;
-        for (Cell near_cell :nearby_cells ) {
-            if (player_cell.distance(near_cell) <= d_restrict ) {
-                nearby_cells_restricted.add(near_cell);
-                if (near_cell.player != player_cell.player)
-                    enemy_cells++;
-            }
-        }
-        int enemy_pheromes = 0;
-        for (Pherome near_pherome :nearby_pheromes ) {
-            if (player_cell.distance(near_pherome) <= d_restrict ) {
-                nearby_pheromes_restricted.add(near_pherome);
-                if (near_pherome.player != player_cell.player)
-                    enemy_pheromes++;
-            } 
-        }
+        @SuppressWarnings("unchecked")
+		Set<Cell> nearby_cells_restricted = 
+        		(Set<Cell>)(Set<?>)
+        		getRestrictedGridObjects(player_cell, new HashSet<GridObject>(nearby_cells), d_restrict);
+        @SuppressWarnings("unchecked")
+		Set<Pherome> nearby_pheromes_restricted = 
+        		(Set<Pherome>)(Set<?>)
+        		getRestrictedGridObjects(player_cell, new HashSet<GridObject>(nearby_pheromes), d_restrict);
+        
+        
+        
 
         System.out.println(nearby_cells_restricted.size());
-
+        memory = 
+        		updateMemory(player_cell,
+        				memory,
+        				nearby_cells,
+        				nearby_cells_restricted,
+        				nearby_pheromes,
+        				nearby_pheromes_restricted);
         // reproduce whenever possible
         if (player_cell.getDiameter() >= 2) {
             return new Move(true, (byte)0, (byte)0);
         }
 
-        // if (enemy_pheromes + enemy_cells > 14)
-        //     System.out.println(enemy_pheromes + enemy_cells);
+        if(isEarlyGame(memory)) {
+        	return moveEarlyGame(player_cell, memory, nearby_cells,
+        			nearby_cells_restricted, nearby_pheromes, nearby_pheromes_restricted);
+        	
+        } else if(isMidGame(memory)) {
+        	return moveMidGame(player_cell, memory, nearby_cells,
+        			nearby_cells_restricted, nearby_pheromes, nearby_pheromes_restricted);
+        } else if(isLateGame(memory)){
+        	return moveLateGame(player_cell, memory, nearby_cells,
+        			nearby_cells_restricted, nearby_pheromes, nearby_pheromes_restricted);
+        } else if(isAttacker(memory)) {
+        	return moveAttacker(player_cell, memory, nearby_cells,
+        			nearby_cells_restricted, nearby_pheromes, nearby_pheromes_restricted);
+        }
+        
+	        
 
-        Point nextPath = pathBetweenTangents(player_cell, nearby_cells_restricted, nearby_pheromes_restricted);
-
+        // if all tries fail, just chill in place
+        return new Move(new Point(0,0), (byte)0);
+    }
+    
+    
+    private Move moveEarlyGame(Cell player_cell, byte memory, Set<Cell> nearby_cells, Set<Cell> nearby_cells_restricted,
+			Set<Pherome> nearby_pheromes, Set<Pherome> nearby_pheromes_restricted) {
+    	Point nextPath = pathBetweenTangents(player_cell, nearby_cells_restricted, nearby_pheromes_restricted);
+    	
         if(nextPath.x != 0 && nextPath.y != 0) {
             if(!collides(player_cell, nextPath, nearby_cells_restricted, nearby_pheromes_restricted)) {
                 return new Move(nextPath, (byte)(int)((Math.toDegrees(Math.atan2(nextPath.y, nextPath.x))/2)));
             } else {
             	Point vector = getLargestTraversableDistance(
     					nextPath, player_cell, nearby_cells_restricted, nearby_pheromes_restricted);
-            	//System.out.println("newlate2 norm: " + vector.norm());
-            	if(vector.norm() < 0.75 && vector.norm() > 0.25 
+            	if(vector.norm() > 0.05
             			&& !collides(player_cell, vector, nearby_cells_restricted, nearby_pheromes_restricted)) {
-            		//System.out.println("newlate2 Well done, strategy.");
             		return new Move(
             			vector, (byte)(int)((Math.toDegrees(Math.atan2(nextPath.y, nextPath.x))/2)));
             	}
@@ -316,13 +413,10 @@ public class Player implements slather.sim.Player {
             if (!collides(player_cell, vector, nearby_cells_restricted, nearby_pheromes_restricted)) 
             return new Move(vector, (byte) arg);
         }
+        return new Move(new Point(0,0), memory);
+	}
 
-        // if all tries fail, just chill in place
-        return new Move(new Point(0,0), (byte)0);
-    }
-    
-    
-    /*
+	/*
      * Returns in direction player_cell --> other
      * Second one is rotated more counter clockwise than first
      */
