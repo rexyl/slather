@@ -11,8 +11,13 @@ import java.util.*;
 public class Player implements slather.sim.Player {
     //arbitrary right now
     private static final double THRESHOLD_DISTANCE = 2;
-    private static final int MIDGAME_CELL_THRESHOLD = 4;
-	private static final int LATEGAME_CELL_THRESHOLD = 8;
+    
+    private static final int MIDGAME_CELL_THRESHOLD = 3;//friendly nearby cells to go from early to mid game
+    
+    private static final double EXPANSION_RATIO = 2;//How many more enemy cells than friend cells there should be
+    												//before you stop pushing against the boundary
+	private static final int LATEGAME_CELL_THRESHOLD = 8;//isnt really used, since mid game and late game have
+														//the same strategy
 	private static final double ANGLE_PRECISION = 32;//2^bits used
 	private Random gen;
     public AggresivePlayer aggresivePlayer;
@@ -139,8 +144,6 @@ public class Player implements slather.sim.Player {
     }
     private Point pathBetweenTangents(
     		Cell player_cell, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes) {
-    	/*if(true)
-    		return pathOfLeastResistance(player_cell, nearby_cells, nearby_pheromes);*/
     	class GridObjectAnglePair{
             GridObject gridObject;
             Point angle;
@@ -235,7 +238,7 @@ public class Player implements slather.sim.Player {
                 }
             }
             if(widest_vector==null) {
-            	//This should also return empty...
+            	//This will also likely return empty...
             	return pathOfLeastResistance(player_cell, nearby_cells, nearby_pheromes);
             }
             Point p2 = rotate_counter_clockwise(widest_vector, widest/2);
@@ -284,7 +287,7 @@ public class Player implements slather.sim.Player {
     	for(Cell cell : nearby_cells_restricted) if(cell.player==player_cell.player) {
     		friends ++;
     	} else enemies++;
-    	if(isEarlyGame(memory) && friends >= 3) {
+    	if(isEarlyGame(memory) && friends >= MIDGAME_CELL_THRESHOLD) {
     		
     		memory = setMidGame(memory);
     	} else if(isMidGame(memory) && nearby_cells_restricted.size() >= LATEGAME_CELL_THRESHOLD ) {
@@ -435,10 +438,8 @@ public class Player implements slather.sim.Player {
 		int num_friendlies = friendlies.size();
 		int num_enemies = enemies.size();
 		Point direction;
-		if(num_enemies < 2 * num_friendlies) {
+		if(num_enemies < EXPANSION_RATIO * num_friendlies) {
 			direction = pathBetweenTangents(player_cell, friendlies, new HashSet<Pherome>());
-			/*Cell closest = getClosest(player_cell, enemies);
-			direction = getClosestDirection(player_cell.getPosition(), closest.getPosition());*/
 		} else {
 			direction = pathBetweenTangents(player_cell, nearby_cells_restricted, nearby_pheromes_restricted);
 		}
