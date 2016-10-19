@@ -13,6 +13,7 @@ public class Player implements slather.sim.Player {
     private static final double THRESHOLD_DISTANCE = 2;
     private static final int MIDGAME_CELL_THRESHOLD = 4;
 	private static final int LATEGAME_CELL_THRESHOLD = 8;
+	private static final double ANGLE_PRECISION = 32;//2^bits used
 	private Random gen;
     public AggresivePlayer aggresivePlayer;
     int t_;
@@ -356,7 +357,7 @@ public class Player implements slather.sim.Player {
         				nearby_pheromes_restricted);
         // reproduce whenever possible
         if (player_cell.getDiameter() >= 2) {
-            return new Move(true, (byte)0, (byte)0);
+            return new Move(true, (byte)memory, (byte)memory);
         }
 
         if(isEarlyGame(memory)) {
@@ -381,20 +382,90 @@ public class Player implements slather.sim.Player {
     }
     
     
-    private Move moveEarlyGame(Cell player_cell, byte memory, Set<Cell> nearby_cells, Set<Cell> nearby_cells_restricted,
+    private Move moveAttacker(Cell player_cell,
+    		byte memory,
+    		Set<Cell> nearby_cells,
+    		Set<Cell> nearby_cells_restricted,
+			Set<Pherome> nearby_pheromes,
+			Set<Pherome> nearby_pheromes_restricted) {
+		// TODO Auto-generated method stub
+		return moveMidGame(player_cell,
+				memory,
+				nearby_cells,
+				nearby_cells_restricted,
+				nearby_pheromes,
+				nearby_pheromes_restricted);
+	}
+
+	private Move moveLateGame(Cell player_cell, byte memory, Set<Cell> nearby_cells, Set<Cell> nearby_cells_restricted,
 			Set<Pherome> nearby_pheromes, Set<Pherome> nearby_pheromes_restricted) {
+		// TODO Auto-generated method stub
+		return moveMidGame(player_cell,
+				memory,
+				nearby_cells,
+				nearby_cells_restricted,
+				nearby_pheromes,
+				nearby_pheromes_restricted);
+	}
+
+	private Move moveMidGame(Cell player_cell,
+    		byte memory,
+    		Set<Cell> nearby_cells, Set<Cell> nearby_cells_restricted,
+			Set<Pherome> nearby_pheromes,
+			Set<Pherome> nearby_pheromes_restricted) {
+		Set<Cell> friendlies = new HashSet<Cell>();
+		for(Cell cell : nearby_cells_restricted) {
+			if(cell.player == player_cell.player) {
+				friendlies.add(cell);
+			}
+		}
+		int num_friendlies = friendlies.size();
+		int num_enemies = nearby_cells_restricted.size() - friendlies.size();
+		Point direction;
+		if(num_friendlies *2 < num_enemies) {
+			direction = pathBetweenTangents(player_cell, friendlies, nearby_pheromes_restricted);
+		} else {
+			direction = pathBetweenTangents(player_cell, nearby_cells_restricted, nearby_pheromes_restricted);
+		}
+		if(collides(player_cell, direction, nearby_cells_restricted, nearby_pheromes_restricted)) {
+			direction = getLargestTraversableDistance(
+					direction, player_cell, nearby_cells_restricted, nearby_pheromes_restricted);
+		}
+		return new Move(direction, memory);
+	}
+
+    /*
+     * angle in degrees
+     */
+    private byte loadAngleToMemoryDegrees(byte memory, double angle) {
+    	memory = (byte) (memory&7);
+    	byte new_memory = (byte)((int)(angle * ANGLE_PRECISION/360.0));
+    	new_memory <<= 3;
+    	new_memory |= (memory&7);
+    	return new_memory;
+    }
+    private byte loadAngleToMemory(byte memory, Point direction) {
+    	double angle = Math.toDegrees(Math.atan2(direction.y, direction.x));
+    	return loadAngleToMemoryDegrees(memory, angle);
+    }
+	private Move moveEarlyGame(Cell player_cell,
+			byte memory, 
+			Set<Cell> nearby_cells, 
+			Set<Cell> nearby_cells_restricted,
+			Set<Pherome> nearby_pheromes, 
+			Set<Pherome> nearby_pheromes_restricted) {
     	Point nextPath = pathBetweenTangents(player_cell, nearby_cells_restricted, nearby_pheromes_restricted);
     	
         if(nextPath.x != 0 && nextPath.y != 0) {
             if(!collides(player_cell, nextPath, nearby_cells_restricted, nearby_pheromes_restricted)) {
-                return new Move(nextPath, (byte)(int)((Math.toDegrees(Math.atan2(nextPath.y, nextPath.x))/2)));
+                return new Move(nextPath, loadAngleToMemory(memory, nextPath));
             } else {
             	Point vector = getLargestTraversableDistance(
     					nextPath, player_cell, nearby_cells_restricted, nearby_pheromes_restricted);
             	if(vector.norm() > 0.05
             			&& !collides(player_cell, vector, nearby_cells_restricted, nearby_pheromes_restricted)) {
             		return new Move(
-            			vector, (byte)(int)((Math.toDegrees(Math.atan2(nextPath.y, nextPath.x))/2)));
+            			vector, loadAngleToMemory(memory, vector));
             	}
             }
         } else {
@@ -468,7 +539,7 @@ public class Player implements slather.sim.Player {
     // convert an angle (in 2-deg increments) to a vector with magnitude
     // Cell.move_dist (max allowed movement distance)
     private Point extractVectorFromAngle(int arg) {
-    double theta = Math.toRadians( 2* (double)arg );
+    double theta =  (double)arg * (2*Math.PI)/ANGLE_PRECISION;
     double dx = Cell.move_dist * Math.cos(theta);
     double dy = Cell.move_dist * Math.sin(theta);
     return new Point(dx, dy);
