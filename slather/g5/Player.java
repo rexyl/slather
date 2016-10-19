@@ -526,10 +526,11 @@ public class Player implements slather.sim.Player {
             }
         } else {
             // continue moving in the same direction as before
-            Point vector = extractVectorFromAngle( (int)(memory>>3));
+            //Point vector = extractVectorFromAngle( (int)(memory>>3));
             // check for collisions
-            if (!collides( player_cell, vector, nearby_cells_restricted, nearby_pheromes_restricted))
-            return new Move(vector, memory);
+            //if (!collides( player_cell, vector, nearby_cells_restricted, nearby_pheromes_restricted))
+            
+            return new Move(new Point(0,0), memory);
         }
         
 
