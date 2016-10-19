@@ -88,6 +88,16 @@ public class Player implements slather.sim.Player {
             for(int i = 0; i < nearby_list.size(); ++i) {
             	Point p0 = nearby_list.get(i-1<0?nearby_list.size()-1:i-1).gridObject.getPosition();
             	Point p1 = nearby_list.get(i).gridObject.getPosition();
+            	/*System.out.println("i:"+ i);
+            	
+            	System.out.println(player_cell.getPosition().x + ", " + player_cell.getPosition().y);
+            	System.out.println(p0.x +", " +p0.y);
+            	System.out.println(p1.x +", " +p1.y);
+            	System.out.println(getClosestDirection(player_cell.getPosition(), p0).x + ", " + 
+            			getClosestDirection(player_cell.getPosition(), p0).y);
+            	System.out.println(getClosestDirection(player_cell.getPosition(), p1).x + ", " +
+            			getClosestDirection(player_cell.getPosition(), p1).y);
+            	*/
                 double angle = 
                 		angleBetweenVectors(getClosestDirection(player_cell.getPosition(), p0),
                 				getClosestDirection(player_cell.getPosition(), p1));
@@ -97,7 +107,8 @@ public class Player implements slather.sim.Player {
                     widest_index = i;
                 }
             }
-            //System.out.println();
+            //System.out.println(nearby_list.size() +" "+widest_index);
+            if(widest_index == -1) return new Point(0,0);
             Point p1 = nearby_list.get(widest_index).angle;
             Point p2 = nearby_list.get(widest_index-1<0?nearby_list.size()-1:widest_index-1).angle;
             
@@ -118,9 +129,12 @@ public class Player implements slather.sim.Player {
     private double angleBetweenVectors(Point p1, Point p2) {
     	double x1 = p1.x, x2 = p2.x, y1 = p1.y, y2 = p2.y;
     	double dot = x1*x2 + y1*y2;    
-    	double det = x1*y2 - y1*x2;  
+    	double det = x1*y2 - y1*x2; 
+    	//System.out.println("det, dot " + det + " " + dot);
     	double angle = Math.atan2(det, dot);
+    	//System.out.println("angle " + angle);
     	if(angle < 0) angle += 2*Math.PI;
+    	//System.out.println("angle " + angle);
     	return angle;
     }
     private Point getLargestTraversableDistance(
