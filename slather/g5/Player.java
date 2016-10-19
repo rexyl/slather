@@ -24,7 +24,6 @@ public class Player implements slather.sim.Player {
 														//the same strategy
 	private static final double ANGLE_PRECISION = 32;//2^bits used
 	private Random gen;
-    public AggresivePlayer aggresivePlayer;
     int t_;
     double d_;
     /*
@@ -41,7 +40,6 @@ public class Player implements slather.sim.Player {
     
     
     public void init(double d, int t, int side_length) {
-        aggresivePlayer = new AggresivePlayer();
         gen = new Random();
         t_ = t;
         d_ = d;
