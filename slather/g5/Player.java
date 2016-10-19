@@ -279,14 +279,18 @@ public class Player implements slather.sim.Player {
      */
     byte updateMemory(Cell player_cell, byte memory, Set<Cell> nearby_cells, Set<Cell> nearby_cells_restricted,
 			Set<Pherome> nearby_pheromes, Set<Pherome> nearby_pheromes_restricted) {
-    	if(isEarlyGame(memory) && nearby_cells_restricted.size() >= MIDGAME_CELL_THRESHOLD) {
-    		int friends = 0;
-    		for(Cell cell : nearby_cells_restricted) if(cell.player == player_cell.player) ++ friends;
-    		System.out.println("MID GAME "+friends);
+    	int friends = 0;
+    	int enemies = 0;
+    	for(Cell cell : nearby_cells_restricted) if(cell.player==player_cell.player) {
+    		friends ++;
+    	} else enemies++;
+    	if(isEarlyGame(memory) && friends >= 3) {
+    		
     		memory = setMidGame(memory);
     	} else if(isMidGame(memory) && nearby_cells_restricted.size() >= LATEGAME_CELL_THRESHOLD ) {
     		memory = setLateGame(memory);
     	}
+    	
     	return memory;
     }
     
@@ -431,7 +435,7 @@ public class Player implements slather.sim.Player {
 		int num_friendlies = friendlies.size();
 		int num_enemies = enemies.size();
 		Point direction;
-		if(num_enemies < num_friendlies) {
+		if(num_enemies < 2 * num_friendlies) {
 			direction = pathBetweenTangents(player_cell, friendlies, new HashSet<Pherome>());
 			/*Cell closest = getClosest(player_cell, enemies);
 			direction = getClosestDirection(player_cell.getPosition(), closest.getPosition());*/
@@ -442,7 +446,18 @@ public class Player implements slather.sim.Player {
 			direction = getLargestTraversableDistance(
 					direction, player_cell, nearby_cells_restricted, nearby_pheromes_restricted);
 		}
-		return new Move(direction, memory);
+		if (!collides(player_cell, direction, nearby_cells_restricted, nearby_pheromes_restricted)) {
+			return new Move(direction, memory);
+		} else {
+			Cell closest = getClosest(player_cell, nearby_cells_restricted);
+	    	direction = getClosestDirection(closest.getPosition(), player_cell.getPosition());
+	    	getLargestTraversableDistance(direction,
+	    			player_cell,
+	    			nearby_cells_restricted,
+	    			nearby_pheromes_restricted);
+	    	return new Move(direction, memory);
+		}
+		
 	}
 
 	private Cell getClosest(Cell player_cell, Set<Cell> nearby_cells) {
@@ -514,13 +529,18 @@ public class Player implements slather.sim.Player {
         
 
         // Generate a random new direction to travel
-        for (int i=0; i<4; i++) {
-            int arg = gen.nextInt((int) ANGLE_PRECISION);
-            Point vector = extractVectorFromAngle(arg);
-            if (!collides(player_cell, vector, nearby_cells_restricted, nearby_pheromes_restricted)) 
-            return new Move(vector, (byte) loadAngleToMemoryDegrees(memory, arg));
+        if(!collides(player_cell, new Point(0,0), nearby_cells_restricted, nearby_pheromes_restricted)) {
+            return new Move(new Point(0,0), memory);
+            
+        } else {
+        	Cell closest = getClosest(player_cell, nearby_cells_restricted);
+        	Point direction = getClosestDirection(closest.getPosition(),player_cell.getPosition());
+        	getLargestTraversableDistance(direction,
+        			player_cell,
+        			nearby_cells_restricted,
+        			nearby_pheromes_restricted);
+        	return new Move(direction, memory);
         }
-        return new Move(new Point(0,0), memory);
 	}
 
 	/*
