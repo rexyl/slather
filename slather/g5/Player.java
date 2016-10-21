@@ -18,7 +18,7 @@ public class Player implements slather.sim.Player {
     
     private static final int MIDGAME_CELL_THRESHOLD = 2;//friendly nearby cells to go from early to mid game
     
-    private static final double EXPANSION_RATIO = 1.5;//How many more enemy cells than friend cells there should be
+    private static final double EXPANSION_RATIO = 1.0;//How many more enemy cells than friend cells there should be
     												//before you stop pushing against the boundary
 	private static final int LATEGAME_CELL_THRESHOLD = 8;//isnt really used, since mid game and late game have
 														//the same strategy
@@ -124,6 +124,82 @@ public class Player implements slather.sim.Player {
             return new Point(-nearby_list.get(0).angle.x,-nearby_list.get(0).angle.y);
         }
         return new Point(0,0);
+    }
+    
+    private double getWidestAngle(Cell player_cell, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes) {
+	
+    	class GridObjectAnglePair <GridObjectAnglePair>{
+            GridObject gridObject;
+            Point angle;
+            public GridObjectAnglePair(GridObject obj, Point ang) {
+                angle = ang;
+                gridObject = obj;
+            }
+        }
+        
+        class GridObjectAnglePairComparator implements Comparator<GridObjectAnglePair> {
+            @Override
+            public int compare(GridObjectAnglePair a, GridObjectAnglePair b) {
+                double angle1 = Math.atan2(a.angle.y, a.angle.x);
+                double angle2 = Math.atan2(b.angle.y, b.angle.x);
+                if(angle1==angle2) return 0;
+                return angle1<angle2?-1:1;
+            }   
+        }
+        
+        List<GridObjectAnglePair> nearby_list = new ArrayList<GridObjectAnglePair>(); 
+        for(GridObject cell : nearby_cells) {
+            nearby_list.add
+            	(new GridObjectAnglePair
+            			(cell,
+            			getClosestDirection(player_cell.getPosition(), cell.getPosition())));
+        }
+        for(GridObject pherome : nearby_pheromes) {
+            if(pherome.player != player_cell.player) {
+                nearby_list.add
+                (new GridObjectAnglePair
+                		(pherome,
+                		getClosestDirection(player_cell.getPosition(), pherome.getPosition())));
+            }
+        }
+        nearby_list.sort(new GridObjectAnglePairComparator());
+        
+        if(nearby_list.size()>1) {
+            double widest = -1;
+            int widest_index = -1;
+            for(int i = 0; i < nearby_list.size(); ++i) {
+            	Point p0 = nearby_list.get(i-1<0?nearby_list.size()-1:i-1).gridObject.getPosition();
+            	Point p1 = nearby_list.get(i).gridObject.getPosition();
+            	/*System.out.println("i:"+ i);
+            	System.out.println(nearby_list.get(i-1<0?nearby_list.size()-1:i-1).gridObject.player);
+            	System.out.println(nearby_list.get(i).gridObject.player);
+            	System.out.println(player_cell.player);
+            	System.out.println(player_cell.getPosition().x + ", " + player_cell.getPosition().y);
+            	System.out.println(p0.x +", " +p0.y);
+            	System.out.println(p1.x +", " +p1.y);
+            	System.out.println(getClosestDirection(player_cell.getPosition(), p0).x + ", " + 
+            			getClosestDirection(player_cell.getPosition(), p0).y);
+            	System.out.println(getClosestDirection(player_cell.getPosition(), p1).x + ", " +
+            			getClosestDirection(player_cell.getPosition(), p1).y);*/
+            	
+                double angle = 
+                		angleBetweenVectors(getClosestDirection(player_cell.getPosition(), p0),
+                				getClosestDirection(player_cell.getPosition(), p1));
+                //System.out.println("angle: " + angle);
+                if( widest < angle ) {
+                    widest = angle;
+                    widest_index = i;
+                }
+            }
+           // System.out.println("xx" + nearby_list.size() +" "+widest_index);
+            return widest;
+       //     System.out.println(p2.x + " p2 "+ p2.y);
+            //return new Move(p3, memory);
+        } else if(nearby_list.size() == 1) {
+            return 2*Math.PI;
+        }
+        return 2*Math.PI;
+        
     }
     
     /*
@@ -367,10 +443,12 @@ public class Player implements slather.sim.Player {
         double d_restrict = 2;
         Set<Integer> enems = new HashSet<Integer>();
         for(Cell cell : nearby_cells) if(cell.player != player_cell.player) enems.add(cell.player);
+
+        d_restrict = Math.min(2,d_);
+        
         //int num_players = 
     	//if(num_players < enems) memory = 
         //if(bigd) d_restrict = 5;
-        d_restrict = Math.min(d_restrict,d_);
         @SuppressWarnings("unchecked")
 		Set<Cell> nearby_cells_restricted = 
         		(Set<Cell>)(Set<?>)
@@ -406,7 +484,13 @@ public class Player implements slather.sim.Player {
         if (player_cell.getDiameter() >= 2) {
         	int mem1 = gen.nextInt(8);
         	int mem2 = gen.nextInt(8);
-        	int which = 0;
+        	int rand = gen.nextInt(100);
+        	int which;
+			if(rand > 66) {
+				which = 1;
+			} else {
+				which = 0;
+			}
         	mem1<<=3;
         	mem2<<=3;
         	which <<= 6;
@@ -484,14 +568,9 @@ public class Player implements slather.sim.Player {
 		int num_friendlies = friendlies.size();
 		int num_enemies = enemies.size();
 		Point direction;
-		double exp_ratio = (memory>>3)*0.1 + EXPANSION_RATIO;
+		double exp_ratio = (memory>>3)*0.15 + EXPANSION_RATIO;
 		int which = memory>>6;
-		int rand = gen.nextInt(100);
-		if(rand > 80) {
-			which = 0;
-		} else {
-			which = 1;
-		}
+		
 		if(num_enemies > 0 /*(1/exp_ratio)*num_friendlies*/ && num_enemies < exp_ratio * num_friendlies) {
 			if(which == 1) {
 				direction = pathBetweenTangents(player_cell, friendlies, new HashSet<Pherome>());
