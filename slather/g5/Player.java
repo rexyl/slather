@@ -503,13 +503,30 @@ public class Player implements slather.sim.Player {
 		if (!collides(player_cell, direction, nearby_cells_restricted, nearby_pheromes_restricted)) {
 			return new Move(direction, memory);
 		} else {
-			Cell closest = getClosest(player_cell, nearby_cells_restricted);
-	    	direction = getClosestDirection(closest.getPosition(), player_cell.getPosition());
-	    	
-	    	getLargestTraversableDistance(direction,
-	    			player_cell,
-	    			nearby_cells_restricted,
-	    			nearby_pheromes_restricted);
+			boolean found = false;
+			for(double scale = 1.0; scale >= 0.0 && !found; scale -= 0.05) {
+				for(int i = 0; i < 10 && !found; ++ i) {
+					double x = gen.nextDouble();
+					double y = gen.nextDouble();
+					Point new_dir = getUnitVector(new Point(x,y));
+					Point new_location = new Point(scale*new_dir.x, scale*new_dir.y);
+					if(!collides(player_cell, new_location, nearby_cells_restricted, nearby_pheromes_restricted)) {
+						direction = new_location;
+						found = true;
+					}
+					
+				}
+			}
+			
+			if(direction.x == 0 && direction.y == 0) {
+				Cell closest = getClosest(player_cell, nearby_cells_restricted);
+		    	direction = getClosestDirection(closest.getPosition(), player_cell.getPosition());
+		    	
+		    	getLargestTraversableDistance(direction,
+		    			player_cell,
+		    			nearby_cells_restricted,
+		    			nearby_pheromes_restricted);
+	    	}
 	    	return new Move(direction, memory);
 		}
 		
@@ -631,8 +648,8 @@ public class Player implements slather.sim.Player {
     while (cell_it.hasNext()) {
         Cell other = cell_it.next();
         if ( destination.distance(other.getPosition()) 
-        		< 0.021*player_cell.getDiameter() 
-        		+ 0.5*player_cell.getDiameter() 
+        		< //0.021*player_cell.getDiameter() +
+        		 0.5*player_cell.getDiameter() 
         		+ 0.5*other.getDiameter() 
         		+ 0.00011) 
         return true;
