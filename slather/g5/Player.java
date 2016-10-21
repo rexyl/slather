@@ -406,7 +406,7 @@ public class Player implements slather.sim.Player {
         if (player_cell.getDiameter() >= 2) {
         	int mem1 = gen.nextInt(8);
         	int mem2 = gen.nextInt(8);
-        	int which = gen.nextInt(3)%2;
+        	int which = 0;
         	mem1<<=3;
         	mem2<<=3;
         	which <<= 6;
@@ -486,6 +486,12 @@ public class Player implements slather.sim.Player {
 		Point direction;
 		double exp_ratio = (memory>>3)*0.1 + EXPANSION_RATIO;
 		int which = memory>>6;
+		int rand = gen.nextInt(100);
+		if(rand > 80) {
+			which = 0;
+		} else {
+			which = 1;
+		}
 		if(num_enemies > 0 /*(1/exp_ratio)*num_friendlies*/ && num_enemies < exp_ratio * num_friendlies) {
 			if(which == 1) {
 				direction = pathBetweenTangents(player_cell, friendlies, new HashSet<Pherome>());
