@@ -14,7 +14,7 @@ public class DefenderMemory implements Memory {
 	public byte getByte() {
 
 		if (memStr.length() != 8) {
-//			System.out.println("The memory is converted to " + memStr.length() + " bits: " + memStr);
+			System.out.println("The memory is converted to " + memStr.length() + " bits: " + memStr);
 			return Byte.parseByte("0", 2);
 		}
 
@@ -71,7 +71,7 @@ public class DefenderMemory implements Memory {
 	public static String blockToString(int block, int length) {
 		String target = Integer.toBinaryString(block);
 		if (target.length() > length) {
-//			System.out.println("The information " + block + " is too big to fit in memory of length " + length);
+			System.out.println("The information " + block + " is too big to fit in memory of length " + length);
 			return target.substring(0, length);
 		} else if (target.length() < length) {
 			StringBuilder sb = new StringBuilder(target);

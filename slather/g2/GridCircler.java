@@ -9,51 +9,45 @@ import java.util.*;
 import slather.g2.util.Vector;
 
 
-public class Circler extends Chiller {
+public class GridCircler extends Chiller {
 
-    public double RADIUS;
-    public double DELTA_THETA;
+    private Grider grider = null;
+    private Circler circler = null;
+    float EPSILON;
 
-    private static final double TWOPI = 2*Math.PI;
 
     public void init(double d, int t, int side_length) {
-        System.out.println("Circler init");
+        System.out.println("GridCircler init");
 
-        this.RANDOM_GENERATOR = new Random(System.currentTimeMillis());
-        this.VISION = d;
-        this.TAIL_LENGTH = t;
-        this.BOARD_SIZE = side_length;
+        grider = new Grider();
+        grider.init(d, t, side_length);
 
-        getPropertiesSafe();
+        circler = new Circler();
+        circler.init(d, t, side_length);
+        // circler.RADIUS = 2.0 * t / (2*Math.PI);
 
-        RADIUS = this.RADIUS_TO_TAIL_RATIO * t / (TWOPI);
-        DELTA_THETA = 1 / RADIUS;
+        this.EPSILON = (float)0.001;
 
     }
 
     public Move play(Cell player_cell, byte memory, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes) {
-        double theta = byte2angle( memory );
-        double nextTheta = normalizeAngle(theta + DELTA_THETA,0);
-        byte nextMemory = 0;
-        Vector vector = null;
-        // Try to go any of four normal directions.
-        for(int i=0; i<4; ++i) {
-            nextMemory = angle2byte( nextTheta, memory );
-            // System.out.println("memory,angles " +memory+","+nextMemory+"," +theta+","+nextTheta);
-            vector = angle2vector( nextTheta);
-            if (!this.collides( player_cell, vector, nearby_cells, nearby_pheromes))
-                return new Move(vector, nextMemory);
-            nextTheta += Math.PI/2;
+        Move m = null;
+
+        m = grider.play(player_cell, memory, nearby_cells, nearby_pheromes);
+        if(m.vector.norm() < this.EPSILON ){
+            m = circler.play(player_cell, memory, nearby_cells, nearby_pheromes);
         }
 
         // if all tries fail, just chill in place
-        return new Move(new Point(0,0), memory);
+        return m;
     }
 
     public Move reproduce(Cell player_cell, byte memory, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes) {
         // System.out.println("Circler reproduce");
         return new Move(true, (byte)(memory|ROLE_CIRCLE), memory);
     }
+
+    private static final double TWOPI = 2*Math.PI;
 
     private double byte2angle(byte b) {
         // -128 <= b < 128
@@ -66,12 +60,18 @@ public class Circler extends Chiller {
         final double actualAngle = ((normalizeAngle(a,0) / TWOPI)*this.ANGLE_MAX);
         final int anglePart = (int) (((int)actualAngle) & this.ANGLE_MASK);
         final byte memoryPart = (byte) ( b & ~this.ANGLE_MASK);
+        // System.out.println("angle2byte "+ memoryPart +","+ anglePart +","+ (normalizeAngle(a,0)/TWOPI) +","+ this.ANGLE_MAX +","+ a);
         return (byte) ((anglePart | memoryPart));
     }
 
     private double normalizeAngle(double a, double start) {
-        final int num_circles = (int) Math.floor((a - start) / TWOPI);
-        return a + num_circles*TWOPI;
+        if( a < start ) {
+            return normalizeAngle( a+TWOPI, start);
+        } else if (a >= (start+TWOPI)) {
+            return normalizeAngle( a-TWOPI, start);
+        } else {
+            return a;
+        }
     }
 
     private Vector angle2vector(double a) {

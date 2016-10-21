@@ -12,7 +12,7 @@ import slather.g2.util.Vector;
 public class Chiller extends Player {
 
     public void init(double d, int t, int side_length) {
-//        System.out.println("Chiller init");
+        System.out.println("Chiller init");
 
         this.RANDOM_GENERATOR = new Random(System.currentTimeMillis());
         this.VISION = d;
@@ -26,7 +26,7 @@ public class Chiller extends Player {
     }
 
     public Move reproduce(Cell player_cell, byte memory, Set<Cell> nearby_cells, Set<Pherome> nearby_pheromes) {
-//        System.out.println("Chiller reproduce");
+        System.out.println("Chiller reproduce");
         return new Move(true, memory, memory);
     }
 

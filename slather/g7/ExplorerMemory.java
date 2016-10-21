@@ -14,7 +14,7 @@ public class ExplorerMemory implements Memory {
 
 	public byte getByte() {
 		if (memStr.length() != 8) {
-//			System.out.println("The memory is converted to " + memStr.length() + " bits: " + memStr);
+			System.out.println("The memory is converted to " + memStr.length() + " bits: " + memStr);
 			return Byte.parseByte("0", 2);
 		}
 		
@@ -50,9 +50,16 @@ public class ExplorerMemory implements Memory {
 	public void initialize(byte memory) {
 		this.memStr = byteToString(memory);
 		this.defOrExp = getMemoryBlock(0, 1);
+		this.offsetCountDown=getMemoryBlock(1, 3);
+		//modified, make sure the memory is never straight zeros
+		int mdc=getMemoryBlock(3, 7);
+		if(mdc==0)
+			this.moveDirectionCountdown=1;
+		else
+			this.moveDirectionCountdown=mdc;
+		
+//		this.moveDirectionCountdown = getMemoryBlock(3, 7);
 		this.opposite = getMemoryBlock(7, 8);
-		this.moveDirectionCountdown = getMemoryBlock(3, 7);
-		this.offsetCountDown = getMemoryBlock(1, 3);	
 	}
 	
 	public void initialize(int offset, int dirCnt, int opposite) {
@@ -79,7 +86,7 @@ public class ExplorerMemory implements Memory {
 	public static String blockToString(int block, int length) {
 		String target = Integer.toBinaryString(block);
 		if (target.length() > length) {
-			//System.out.println("The information " + block + " is too big to fit in memory of length " + length);
+			System.out.println("The information " + block + " is too big to fit in memory of length " + length);
 			return target.substring(0, length);
 		} else if (target.length() < length) {
 			StringBuilder sb = new StringBuilder(target);
@@ -97,7 +104,7 @@ public class ExplorerMemory implements Memory {
 		
 		ExplorerMemory memoryObject = getNewObject();
 		if (this.opposite == 1){
-			if (this.moveDirectionCountdown == 0){
+			if (this.moveDirectionCountdown == 1){
 				memoryObject.initialize(3, 15, 0);
 			}
 			else{
@@ -107,7 +114,7 @@ public class ExplorerMemory implements Memory {
 			}
 		}
 		else{
-			if (this.moveDirectionCountdown == 0){
+			if (this.moveDirectionCountdown == 1){
 				memoryObject.initialize(0, 15, 1);
 			}
 			else{
