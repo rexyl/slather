@@ -1,0 +1,15 @@
+\section{Parameter Tuning and Memory}
+This section discusses the parameters we used and why we selected certain values:\\
+
+\subsubsection{Midgame Cell Threshold} 
+This is the number of cells that the player should see for it to transition from the early game state to the mid game state. The value we use is 2. This corresponds to a cluster of around 10 cells, which is large enough for our mid game algorithm to work correctly. The reason we do not use larger values is that if we stay in the early game state for too long, other cells might enter our cluster early on and harm our mid game strategy, which is more important.
+
+
+\subsubsection{Expansion ratio}
+This is the rate at which the cluster expands. A larger value of around 2.0 of expansion ratio leads to larger expansion at the cost of creating gaps in the border that enemy cells can enter. A smaller value close to 1.0 on the other hand does not expand as fast and may cost our species a higher score. To balance this, we decided to use different values of expansion ratio for different cells. Each cell is randomly assigned a random number from 0 - 7 and this determines the expansion ratio. The random values are stored using 3 bits of memory.
+
+
+\subsubsection{Role Probability} This is the probability that a newly created cell is assigned defender or attacker. A large number of attackers performs very well in 2 - player games, but it performs terribly in multi player games because of the gaps that attackers create in the border. When enemy cells enter these gaps, attackers on the interior surround them. Since many enemy cells would permeate our cluster, the entire interior of our cluster gets ruined by having all attackers. \\
+All defenders on the other hand performs well in multiplayer games. In fact many of the top performing groups like g9 and g2 use a strategy with all defenders. This creates tight borders that other cells cannot penetrate but they do not push against other clusters to expand as much as attackers do. We found the best proportion of the two to be $\frac{2}{3}$ attackers and $\frac{1}{3}$ defenders. The reason for this is that this was the lowest proportion of attackers we could choose to outperform other players in 2-player games, which we made our goal as a group to win.
+One bit of memory stores the role of the cell. \\
+
